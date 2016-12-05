@@ -89,11 +89,15 @@ class ModbusTransactionManager(object):
             try:
                 self.client.connect()
                 self.client._send(self.client.framer.buildPacket(request))
+
                 result = self.client._recv(expected_response_length)
+                while result and len(result) < expected_response_length:
+                    result += self.client._recv(expected_response_length - len(result))
 
                 if not result and self.retry_on_empty:
                     retries -= 1
                     continue
+
                 if _logger.isEnabledFor(logging.DEBUG):
                     _logger.debug("recv: " + " ".join([hex(byte2int(x)) for x in result]))
                 self.client.framer.processIncomingPacket(result, self.addTransaction)
